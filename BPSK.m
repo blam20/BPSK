@@ -1,78 +1,82 @@
 clc 
-clear
+clear all
+close all
 
-N = 1024; % N sampling points
-Random = rand(1,N); %%Random sequence
+Nbits = 5000; % N bits
 
-binary = round(Random); %% 0s and 1s
+spb = 5 %samples per symbol
+Random = upsample(sign(randn(1,Nbits)),spb); %Random sequence
 
-Fc = 2; %% Carrier frequency
-Fs = 4; %% Sampling frequency
-numCycles = 1; %% One bit is represented by one cycle of sine wave 
-Tb = numCycles/Fc  %% Cycles represented for one bit
-t = 0:1/Fs:(numCycles-1/Fs); %Period of one cycle
+
+Fc = 40; % Carrier frequency
+Fs = 200; % Sampling frequency
+%numCycles = 137.5 ;
+%Tb = numCycles/Fc;  % Bit duration
+%t = 0:1/Fs:(numCycles-1/Fs); %Period of one cycle
+%t = t(1:2500);
+n = 0:Nbits*spb-1;
+t = n/Fs;
 
 A = 1;
 
-carrier = A*cos(2*pi*Fc*t); %%Carrier wave
-bitStream = [];
-carrierSignal = [];
-i = 1;
+%carrier = A*cos(2*pi*(Fc/Fs)*n); %Carrier wave
+carrier = A*exp(j*2*pi*(Fc/Fs)*n); %Carrier wave
+real_carrier = real(carrier);
 
-%For every sample point, we have to make one bit as four sampling points
-%So if the generated bit is one, then for one full cycle of the carrier wave
-%we make the bitstream as one. Same goes for zero
-while(i<=N)
-    if(binary(i))
-        bitStream = [bitStream ones(1,length(carrier))]; %%Creating a bit stream of 1
-    else
-        bitStream = [bitStream zeros(1, length(carrier))]; %%Creating bit stream of 0s 
-    end
-    carrierSignal = [carrierSignal carrier];
-    i = i+1;
-end
+X = 13
+ps = boxcar(X);
+ps = blackman(X);
+figure(7)
+plot(ps)
+title('Pulse Shaping')
+y = filter(ps,1,Random); %Pulse shaping 
+bits = Random; %% Polar data of 1s and -1s
 
-bits = 2*(bitStream-0.5); %% 1s and -1s
-bpsk = carrierSignal.*bits;
-plot(bits);
-xlim([0 300]);
+
+figure(1)
+plot(y)
+title('Pulse Shaping of Random Sequence')
+xlim([0 100]);
+
+bpsk = real_carrier.*y;
+figure(2)
+plot(bits,'x-');
+title('Bipolar bitstream')
+xlim([0 50]);
 ylim([-1.1 1.1]);
 
 
-figure;
-
-plot(carrierSignal);
-xlim([0 300]);
+figure(3)
+plot(bpsk,'rx-')
+title('BPSK Modulated Signal')
+xlim([0 50]);
 ylim([-1.1 1.1]);
 
-figure;
 
-plot(bpsk);
-xlim([0 300]);
+figure(4)
+plot(carrier)
+title('Carrier')
+xlim([0 50]);
 ylim([-1.1 1.1]);
 
-%%
-freqz(bpsk,1,2^10,'whole',1)
-freqz(carrierSignal,1,2^10,'whole',1)
-[CS frq]=freqz(carrierSignal,1,2^10,'whole',1);
-plot(abs(CS))
-[BPSK frq]=freqz(bpsk,1,2^10,'whole',1);
-plot(abs(BPSK))
-[BITS frq]=freqz(bits,1,2^10,'whole',1);
-figure(10)
-plot(abs(BITS))
-plot(fftshift(abs(BITS)))
-plot(-511:512,fftshift(abs(BITS)))
-plot(-511:512,fftshift(abs(BPSK)))
-plot((-511:512)/2^10,fftshift(abs(BPSK)))
-plot((-511:512)/2^10,fftshift(abs(BITS)))
+
+figure(5)
+freqz(bpsk,1,2^10,'whole',Fs); 
+title('BPSK Spectrum')
+ylim([-50 80]);
+
+figure(6)
+freqz(y,1,2^10,'whole',Fs);
+title('Baseband Signal Spectrum')
+ylim([-80 80]);
+
+base_real = real(y);
+figure(7)
+plot(base_real);
 
 
-Eb = (A^2*Tb)/2; %%Bit energy
-Eb_No_dB = 0:2:14; %%SNR
-Eb_No = 10.^(Eb_No_dB/10);
-nVar = Eb./Eb_No;
-sound(bpsk)
+
+
 
 
 
