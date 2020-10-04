@@ -4,9 +4,12 @@ close all
 
 Nbits = 5000; % N bits
 
-spb = 5 %samples per symbol
-Random = upsample(sign(randn(1,Nbits)),spb); %Random sequence
-
+spb = 10 %samples per symbol
+Random = upsample(sign(randn(1,Nbits)),spb); %Random sequence (imaginary)
+Random = [Random zeros(1,spb/2)];
+RandomQ = upsample(sign(randn(1,Nbits)),spb); %Random sequence
+RandomQ = [zeros(1,spb/2) RandomQ];
+IQ = Random + j*RandomQ;
 
 Fc = 40; % Carrier frequency
 Fs = 200; % Sampling frequency
@@ -14,7 +17,7 @@ Fs = 200; % Sampling frequency
 %Tb = numCycles/Fc;  % Bit duration
 %t = 0:1/Fs:(numCycles-1/Fs); %Period of one cycle
 %t = t(1:2500);
-n = 0:Nbits*spb-1;
+n = 0:Nbits*spb-1+spb/2;
 t = n/Fs;
 
 A = 1;
@@ -29,51 +32,65 @@ ps = blackman(X);
 figure(7)
 plot(ps)
 title('Pulse Shaping')
-y = filter(ps,1,Random); %Pulse shaping 
-bits = Random; %% Polar data of 1s and -1s
+y = filter(ps,1,IQ); %Pulse shaping 
+
+I_bits = Random; %% Polar data of 1s and -1s
+Q_bits = RandomQ;
+
 
 
 figure(1)
-plot(y)
+plot(real(y),'b-');
+hold on
+plot(imag(y),'r-');
+hold off
 title('Pulse Shaping of Random Sequence')
 xlim([0 100]);
 
-bpsk = real_carrier.*y;
+
+obpsk = carrier.*y; %offset bpsk
 figure(2)
-plot(bits,'x-');
+plot(I_bits,'bx-');
+hold on
+plot(Q_bits,'rx-');
+hold off
 title('Bipolar bitstream')
 xlim([0 50]);
 ylim([-1.1 1.1]);
 
 
 figure(3)
-plot(bpsk,'rx-')
-title('BPSK Modulated Signal')
+plot(real(obpsk),'bx-');
+hold on
+plot(imag(obpsk),'rx-');
+hold off
+title('OBPSK Modulated Signal')
 xlim([0 50]);
 ylim([-1.1 1.1]);
 
-
+%{
 figure(4)
 plot(carrier)
 title('Carrier')
 xlim([0 50]);
 ylim([-1.1 1.1]);
-
+%}
 
 figure(5)
-freqz(bpsk,1,2^10,'whole',Fs); 
+freqz(obpsk,1,2^10,'whole',Fs); 
 title('BPSK Spectrum')
 ylim([-50 80]);
+
 
 figure(6)
 freqz(y,1,2^10,'whole',Fs);
 title('Baseband Signal Spectrum')
 ylim([-80 80]);
+return
 
 base_real = real(y);
 figure(7)
 plot(base_real);
-
 
 
 
