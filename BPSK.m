@@ -93,7 +93,24 @@ figure(7)
 plot(base_real);
 
 
+%Demod
+demod_carrier = Aexp(j2pi(Fc/Fs)n); %same as carrier
 
+demod_sig = real(obpsk.demod_carrier);
+
+
+figure(8)
+plot(demod_sig)
+
+demod_ps = filter(ps,1,demod_sig);
+
+figure(9)
+plot(demod_ps)
+
+demod_pass = lowpass(demod_ps,.5,Fs);
+
+figure(10)
+plot(demod_pass)
 
 
 
