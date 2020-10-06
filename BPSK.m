@@ -4,12 +4,12 @@ close all
 
 Nbits = 5000; % N bits
 
-spb = 10 %samples per symbol
-Random = upsample(sign(randn(1,Nbits)),spb); %Random sequence (imaginary)
-Random = [Random zeros(1,spb/2)];
-RandomQ = upsample(sign(randn(1,Nbits)),spb); %Random sequence
-RandomQ = [zeros(1,spb/2) RandomQ];
-IQ = Random + j*RandomQ;
+spb = 10; %samples per symbol
+Random = upsample(sign(randn(1,Nbits)),spb); %Random sequence (in phase)
+Random = [Random zeros(1,spb/2)]; %Adding zeros to indicate offset in phase component
+RandomQ = upsample(sign(randn(1,Nbits)),spb); %Random sequence (quadrature)
+RandomQ = [zeros(1,spb/2) RandomQ]; %Adding zeros to indicate offset in quadrature component
+IQ = Random + j*RandomQ; %In phase, quadrature
 
 Fc = 40; % Carrier frequency
 Fs = 200; % Sampling frequency
@@ -26,31 +26,31 @@ A = 1;
 carrier = A*exp(j*2*pi*(Fc/Fs)*n); %Carrier wave
 real_carrier = real(carrier);
 
-X = 13
-ps = boxcar(X);
-ps = blackman(X);
-figure(7)
-plot(ps)
+ps_size = 16;
+ps = boxcar(ps_size);
+ps = blackman(ps_size);
 title('Pulse Shaping')
-y = filter(ps,1,IQ); %Pulse shaping 
+filtered_IQ = filter(ps,1,IQ); %Pulse shaping 
 
 I_bits = Random; %% Polar data of 1s and -1s
-Q_bits = RandomQ;
+Q_bits = RandomQ; 
 
 
 
 figure(1)
-plot(real(y),'b-');
+plot(real(filtered_IQ),'b-');
 hold on
-plot(imag(y),'r-');
+plot(imag(filtered_IQ),'r-');
 hold off
 title('Pulse Shaping of Random Sequence')
 xlim([0 100]);
 
 
-obpsk = carrier.*y; %offset bpsk
+oqpsk = carrier.*filtered_IQ; %offset bpsk
+real_oqpsk = real(oqpsk);
+
 figure(2)
-plot(I_bits,'bx-');
+plot(I_bits,'bx-'); %Plotting both IQ bits
 hold on
 plot(Q_bits,'rx-');
 hold off
@@ -60,11 +60,11 @@ ylim([-1.1 1.1]);
 
 
 figure(3)
-plot(real(obpsk),'bx-');
+plot(real(oqpsk),'bx-'); %Real part of obpsk
 hold on
-plot(imag(obpsk),'rx-');
+plot(imag(oqpsk),'rx-'); %Imaginary part of obpsk
 hold off
-title('OBPSK Modulated Signal')
+title('OQPSK Modulated Signal')
 xlim([0 50]);
 ylim([-1.1 1.1]);
 
@@ -77,40 +77,52 @@ ylim([-1.1 1.1]);
 %}
 
 figure(5)
-freqz(obpsk,1,2^10,'whole',Fs); 
-title('BPSK Spectrum')
+freqz(real(oqpsk),1,2^10,'whole',Fs); 
+title('OQPSK Spectrum')
 ylim([-50 80]);
 
 
 figure(6)
-freqz(y,1,2^10,'whole',Fs);
-title('Baseband Signal Spectrum')
+freqz(filtered_IQ,1,2^10,'whole',Fs);
+title('Baseband Spectrum')
 ylim([-80 80]);
-return
-
-base_real = real(y);
-figure(7)
-plot(base_real);
 
 
-%Demod
-demod_carrier = Aexp(j2pi(Fc/Fs)n); %same as carrier
+%Demodulation
+demod_carrier = A*exp(-j*2*pi*(Fc/Fs)*n); %same as carrier
 
-demod_sig = real(obpsk.demod_carrier);
+demod_sig = real(oqpsk).*demod_carrier;
 
 
 figure(8)
-plot(demod_sig)
-
-demod_ps = filter(ps,1,demod_sig);
+freqz(demod_sig,1,2^10,'whole',Fs);
+title('Demodulated Signal')
 
 figure(9)
-plot(demod_ps)
-
-demod_pass = lowpass(demod_ps,.5,Fs);
+demod_pass = lowpass(demod_sig,40,Fs);
+freqz(demod_pass,1,2^10,'whole',Fs);
+title('Demodulated Filtered Signal')
 
 figure(10)
-plot(demod_pass)
+real_filtered_demod = real(demod_pass);
+imag_filtered_demod = imag(demod_pass);
+demod_ps_real = filter(ps,1,real_filtered_demod);
+demod_ps_imag = filter(ps,1,imag_filtered_demod);
 
 
+figure(11)
+hold on
+plot(demod_ps_real);
+plot(real(filtered_IQ),'r-');
+%xlim([0 100]);
+title('Superimposed Real Parts of the Pulse Shaped and Demodulated Pulse Shaped Signal')
+hold off
+
+figure(12)
+hold on
+plot(demod_ps_imag);
+plot(imag(filtered_IQ),'r-');
+title('Superimposed Imaginary Parts of the Pulse Shaped and Demodulated Pulse Shaped Signal')
+%xlim([0 100]);
+hold off
 
