@@ -126,3 +126,42 @@ title('Superimposed Imaginary Parts of the Pulse Shaped and Demodulated Pulse Sh
 %xlim([0 100]);
 hold off
 
+%sample the demodsignal at every 20th sample
+len_demod_sig  = length(demod_ps_real);
+i = 8;
+data = zeros(1,len_demod_sig); %our final data stream (1 of 2)
+while i<len_demod_sig
+    if demod_ps_real(i) < 0
+    data(i) = 0;
+    end
+    if demod_ps_real(i) >= 0
+    data(i) = 1;
+    end
+    i = i +20;
+end
+
+
+% turns polar NRZ random bits at the start to 0 and 1
+x  = length(Random);
+i = 1;
+while i<x
+    if Random(i) == -1
+    Random(i) = 0;
+    end
+    i = i +1;
+end
+
+
+i = 16;
+
+%samples random at every 20th sample
+while i<x
+    if Random(i) == -1
+    Random(i) = 0;
+    end
+    i = i +20;
+end
+
+%compares real data to random 
+error = biterr(Random,data)
+
